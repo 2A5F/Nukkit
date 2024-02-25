@@ -1,3 +1,7 @@
+***此分叉包含皮肤提取代码***
+
+---
+
 ![nukkit](.github/images/banner.png)
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
