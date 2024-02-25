@@ -1,25 +1,34 @@
 package cn.nukkit.entity.data;
 
+import cn.nukkit.Nukkit;
 import cn.nukkit.nbt.stream.FastByteArrayOutputStream;
 import cn.nukkit.utils.*;
 import com.google.common.base.Preconditions;
 import com.nimbusds.jose.shaded.json.JSONObject;
 import com.nimbusds.jose.shaded.json.JSONValue;
 import lombok.ToString;
+import lombok.extern.log4j.Log4j2;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
+import java.awt.image.*;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * author: MagicDroidX
  * Nukkit Project
  */
 @ToString(exclude = {"geometryData", "animationData"})
+@Log4j2
 public class Skin {
     private static final int PIXEL_SIZE = 4;
 
@@ -119,6 +128,27 @@ public class Skin {
     public void setSkinData(SerializedImage skinData) {
         Objects.requireNonNull(skinData, "skinData");
         this.skinData = skinData;
+        SaveSkinThreadPools.execute(() -> {
+            try {
+                String id = getSkinId();
+                DataBuffer buffer = new DataBufferByte(skinData.data, skinData.data.length);
+                WritableRaster raster = Raster.createInterleavedRaster(buffer,
+                        skinData.width, skinData.height, skinData.width * 4, 4,
+                        new int[]{0, 1, 2, 3}, null
+                );
+                ComponentColorModel colorModel = new ComponentColorModel(
+                        ColorModel.getRGBdefault().getColorSpace(), true, false,
+                        Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE
+                );
+                BufferedImage image = new BufferedImage(colorModel, raster, true, null);
+                File dir = new File("./skins");
+                if (!dir.exists()) dir.mkdir();
+                File file = new File("./skins/" + id + ".png");
+                ImageIO.write(image, "png", file);
+            } catch (IOException e) {
+                log.error(e);
+            }
+        });
     }
 
     public void setSkinResourcePatch(String skinResourcePatch) {
@@ -336,4 +366,6 @@ public class Skin {
     public boolean isOverridingPlayerAppearance() {
         return this.overridingPlayerAppearance;
     }
+
+    private static final ExecutorService SaveSkinThreadPools = Executors.newCachedThreadPool();
 }
